@@ -1,4 +1,4 @@
-// kernel.c - OM3 OS (Lowercase Version)
+// kernel.c - OM3 OS with Scrolling
 #define VGA_WIDTH 80
 #define VGA_HEIGHT 25
 
@@ -37,7 +37,7 @@ int starts_with(char *main, char *prefix) {
     return 1;
 }
 
-// --- 3. KEYBOARD MAP (No Shift Support Yet) ---
+// --- 3. KEYBOARD MAP ---
 unsigned char keyboard_map[128] = {
     0,  27, '1', '2', '3', '4', '5', '6', '7', '8', '9', '0', '-', '=', '\b',
   '\t', 'q', 'w', 'e', 'r', 't', 'y', 'u', 'i', 'o', 'p', '[', ']', '\n',
@@ -45,7 +45,25 @@ unsigned char keyboard_map[128] = {
   'z', 'x', 'c', 'v', 'b', 'n', 'm', ',', '.', '/',   0, '*',   0, ' ',   0,
 };
 
-// --- 4. VIDEO DRIVER ---
+// --- 4. VIDEO DRIVER (With Scrolling!) ---
+
+// Move all text up by one line
+void scroll() {
+    // 1. Move everything up
+    // We copy from the 2nd line (index 160) to the 1st line (index 0)
+    // We do this for the entire screen minus one row.
+    for (int i = 0; i < (VGA_HEIGHT - 1) * VGA_WIDTH * 2; i++) {
+        video_memory[i] = video_memory[i + (VGA_WIDTH * 2)];
+    }
+
+    // 2. Clear the last line
+    // We start at the last row and fill it with spaces
+    for (int i = (VGA_HEIGHT - 1) * VGA_WIDTH * 2; i < VGA_HEIGHT * VGA_WIDTH * 2; i += 2) {
+        video_memory[i] = ' ';
+        video_memory[i + 1] = 0x0F;
+    }
+}
+
 void update_cursor() {
     int offset = (cursor_row * VGA_WIDTH + cursor_col) * 2;
     video_memory[offset] = '_';
@@ -59,20 +77,31 @@ void clear_cursor_visual() {
 }
 
 void print_char(char c) {
+    // 1. Handle Newline
     if (c == '\n') {
         clear_cursor_visual();
         cursor_row++;
         cursor_col = 0;
-        return;
     }
-    clear_cursor_visual();
-    int offset = (cursor_row * VGA_WIDTH + cursor_col) * 2;
-    video_memory[offset] = c;
-    video_memory[offset + 1] = 0x0F;
-    cursor_col++;
+    // 2. Handle Normal Char
+    else {
+        clear_cursor_visual();
+        int offset = (cursor_row * VGA_WIDTH + cursor_col) * 2;
+        video_memory[offset] = c;
+        video_memory[offset + 1] = 0x0F;
+        cursor_col++;
+    }
+
+    // 3. Handle Wrapping (End of line)
     if (cursor_col >= VGA_WIDTH) {
         cursor_col = 0;
         cursor_row++;
+    }
+
+    // 4. Handle SCROLLING (End of screen)
+    if (cursor_row >= VGA_HEIGHT) {
+        scroll();
+        cursor_row = VGA_HEIGHT - 1; // Stay on the last line
     }
 }
 
@@ -93,7 +122,7 @@ void clear_screen() {
     cursor_row = 0;
 }
 
-// --- 5. HOLYHAMER ENGINE (Simplified) ---
+// --- 5. HOLYHAMER ENGINE ---
 void run_holyhamer_code() {
     print_string("\n"); 
 
@@ -101,9 +130,7 @@ void run_holyhamer_code() {
         holyhamer_mode = 0;
         print_string("exiting holyhamer environment...\n");
     }
-    // NEW SYNTAX: "print <text>" (No parentheses or quotes needed)
     else if (starts_with(key_buffer, "print ")) {
-        // Skip first 6 chars ("print ")
         char* content = key_buffer + 6;
         print_string(content);
         print_string("\n");
@@ -121,14 +148,13 @@ void execute_command() {
         run_holyhamer_code();
     }
     else {
-        // --- COMMANDS ---
         if (strcmp(key_buffer, "help") == 0) {
             print_string("  holyhamer - programming mode\n");
             print_string("  super     - become root (sudo)\n");
             print_string("  whoami    - show current user\n");
             print_string("  clear     - clear screen\n");
         } 
-        else if (strcmp(key_buffer, "holyhamer") == 0) { // LOWERCASE
+        else if (strcmp(key_buffer, "holyhamer") == 0) {
             holyhamer_mode = 1; 
             print_string("holyhamer compiler v0.1 initialized.\n");
             print_string("type 'exit' to return.\n");
@@ -159,11 +185,11 @@ void execute_command() {
     for(int i=0; i<256; i++) key_buffer[i] = 0;
     buffer_index = 0;
 
-    // --- PROMPT DISPLAY ---
+    // Fix prompt position after clear/scroll
     if (cursor_row < 0) cursor_row = 0;
 
     if (holyhamer_mode == 1) {
-        print_string("hh> "); // Lowercase prompt
+        print_string("hh> ");
     } else {
         if (is_root == 1) print_string("root# ");
         else print_string("om3$ ");
@@ -173,7 +199,7 @@ void execute_command() {
 // --- 7. MAIN KERNEL ---
 void kmain() {
     clear_screen();
-    print_string("welcome to om3 os v1.2\n");
+    print_string("welcome to om3 os v1.3 (scrolling enabled)\n");
     print_string("type 'help' for commands.\n\n");
     print_string("om3$ ");
     
@@ -198,7 +224,7 @@ void kmain() {
                 }
                 else if (c == '\n') {
                     clear_cursor_visual();
-                    execute_command(); // Logic handles mode check
+                    execute_command();
                     update_cursor();
                 }
                 else if (c != 0) {
