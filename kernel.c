@@ -1,4 +1,4 @@
-// kernel.c - OM3 OS with Command Shell
+// kernel.c - OM3 OS (Lowercase Version)
 #define VGA_WIDTH 80
 #define VGA_HEIGHT 25
 
@@ -6,9 +6,13 @@ volatile char* video_memory = (volatile char*)0xb8000;
 int cursor_col = 0;
 int cursor_row = 0;
 
-// --- THE MEMORY (Command Buffer) ---
-char key_buffer[256]; // Stores the current command
+// --- MEMORY ---
+char key_buffer[256];
 int buffer_index = 0;
+
+// GLOBAL FLAGS
+int holyhamer_mode = 0;
+int is_root = 0; 
 
 // --- 1. LOW LEVEL I/O ---
 unsigned char port_byte_in(unsigned short port) {
@@ -17,8 +21,7 @@ unsigned char port_byte_in(unsigned short port) {
     return result;
 }
 
-// --- 2. STRING TOOLS (Since we don't have <string.h>) ---
-// Returns 0 if strings are same, non-zero if different
+// --- 2. STRING TOOLS ---
 int strcmp(char s1[], char s2[]) {
     int i;
     for (i = 0; s1[i] == s2[i]; i++) {
@@ -27,7 +30,14 @@ int strcmp(char s1[], char s2[]) {
     return s1[i] - s2[i];
 }
 
-// --- 3. KEYBOARD MAP ---
+int starts_with(char *main, char *prefix) {
+    while (*prefix) {
+        if (*prefix++ != *main++) return 0;
+    }
+    return 1;
+}
+
+// --- 3. KEYBOARD MAP (No Shift Support Yet) ---
 unsigned char keyboard_map[128] = {
     0,  27, '1', '2', '3', '4', '5', '6', '7', '8', '9', '0', '-', '=', '\b',
   '\t', 'q', 'w', 'e', 'r', 't', 'y', 'u', 'i', 'o', 'p', '[', ']', '\n',
@@ -55,7 +65,6 @@ void print_char(char c) {
         cursor_col = 0;
         return;
     }
-
     clear_cursor_visual();
     int offset = (cursor_row * VGA_WIDTH + cursor_col) * 2;
     video_memory[offset] = c;
@@ -84,48 +93,89 @@ void clear_screen() {
     cursor_row = 0;
 }
 
-// --- 5. SHELL LOGIC ( The New Brain ) ---
-void execute_command() {
-    print_string("\n"); // Move to new line
+// --- 5. HOLYHAMER ENGINE (Simplified) ---
+void run_holyhamer_code() {
+    print_string("\n"); 
 
-    // Compare buffer with known commands
-    if (strcmp(key_buffer, "help") == 0) {
-        print_string("Available commands:\n");
-        print_string("  help   - Show this list\n");
-        print_string("  clear  - Clear the screen\n");
-        print_string("  hello  - Say hi\n");
-    } 
-    else if (strcmp(key_buffer, "clear") == 0) {
-        clear_screen();
-        cursor_row = -1; // Hack: It will become 0 after the newline below
+    if (strcmp(key_buffer, "exit") == 0) {
+        holyhamer_mode = 0;
+        print_string("exiting holyhamer environment...\n");
     }
-    else if (strcmp(key_buffer, "hello") == 0) {
-        print_string("Hello! Welcome to OM3 OS.\n");
-    }
-    else if (buffer_index > 0) {
-        print_string("Unknown command: ");
-        print_string(key_buffer);
+    // NEW SYNTAX: "print <text>" (No parentheses or quotes needed)
+    else if (starts_with(key_buffer, "print ")) {
+        // Skip first 6 chars ("print ")
+        char* content = key_buffer + 6;
+        print_string(content);
         print_string("\n");
     }
-
-    // Reset the buffer for the next command
-    for(int i=0; i<256; i++) key_buffer[i] = 0;
-    buffer_index = 0;
-
-    if (cursor_row >= 0) print_string("OM3> ");
     else {
-         // Handle special case for clear screen
-         cursor_row = 0; 
-         print_string("OM3> ");
+        print_string("hh error: syntax error.\n");
     }
 }
 
-// --- 6. MAIN KERNEL ---
+// --- 6. SHELL LOGIC ---
+void execute_command() {
+    print_string("\n"); 
+
+    if (holyhamer_mode == 1) {
+        run_holyhamer_code();
+    }
+    else {
+        // --- COMMANDS ---
+        if (strcmp(key_buffer, "help") == 0) {
+            print_string("  holyhamer - programming mode\n");
+            print_string("  super     - become root (sudo)\n");
+            print_string("  whoami    - show current user\n");
+            print_string("  clear     - clear screen\n");
+        } 
+        else if (strcmp(key_buffer, "holyhamer") == 0) { // LOWERCASE
+            holyhamer_mode = 1; 
+            print_string("holyhamer compiler v0.1 initialized.\n");
+            print_string("type 'exit' to return.\n");
+        }
+        else if (strcmp(key_buffer, "super") == 0) {
+            if (is_root == 0) {
+                is_root = 1;
+                print_string("password accepted. you are now root.\n");
+            } else {
+                is_root = 0;
+                print_string("you are now a standard user.\n");
+            }
+        }
+        else if (strcmp(key_buffer, "whoami") == 0) {
+            if (is_root == 1) print_string("root\n");
+            else print_string("user\n");
+        }
+        else if (strcmp(key_buffer, "clear") == 0) {
+            clear_screen();
+            cursor_row = -1; 
+        }
+        else if (buffer_index > 0) {
+            print_string("unknown command.\n");
+        }
+    }
+
+    // Reset buffer
+    for(int i=0; i<256; i++) key_buffer[i] = 0;
+    buffer_index = 0;
+
+    // --- PROMPT DISPLAY ---
+    if (cursor_row < 0) cursor_row = 0;
+
+    if (holyhamer_mode == 1) {
+        print_string("hh> "); // Lowercase prompt
+    } else {
+        if (is_root == 1) print_string("root# ");
+        else print_string("om3$ ");
+    }
+}
+
+// --- 7. MAIN KERNEL ---
 void kmain() {
     clear_screen();
-    print_string("Welcome to OM3 OS v1.0\n");
-    print_string("Type 'help' for commands.\n\n");
-    print_string("OM3> ");
+    print_string("welcome to om3 os v1.2\n");
+    print_string("type 'help' for commands.\n\n");
+    print_string("om3$ ");
     
     update_cursor();
 
@@ -135,35 +185,25 @@ void kmain() {
             if (scan_code < 128) {
                 char c = keyboard_map[scan_code];
 
-                // Case 1: BACKSPACE
                 if (c == '\b') {
                     if (buffer_index > 0) {
-                        // Remove from screen
                         clear_cursor_visual();
                         cursor_col--;
                         int offset = (cursor_row * VGA_WIDTH + cursor_col) * 2;
-                        video_memory[offset] = ' ';
-                        video_memory[offset + 1] = 0x0F;
-                        
-                        // Remove from memory buffer
+                        video_memory[offset] = ' '; video_memory[offset + 1] = 0x0F;
                         buffer_index--;
                         key_buffer[buffer_index] = 0;
-                        
                         update_cursor();
                     }
                 }
-                // Case 2: ENTER
                 else if (c == '\n') {
                     clear_cursor_visual();
-                    execute_command(); // Run the logic!
+                    execute_command(); // Logic handles mode check
                     update_cursor();
                 }
-                // Case 3: NORMAL LETTER
                 else if (c != 0) {
                     print_char(c);      
                     update_cursor();
-                    
-                    // Save to memory buffer
                     if (buffer_index < 255) {
                         key_buffer[buffer_index] = c;
                         buffer_index++;
@@ -171,7 +211,6 @@ void kmain() {
                 }
             }
         }
-        // Delay loop
         for(int i = 0; i < 500000; i++) { __asm__ volatile ("nop"); }
     }
 }
