@@ -1,30 +1,33 @@
-# Makefile for OM3 OS
+# Makefile for OM3 OS (Windows Version)
 
 # Tools
 CC = gcc
 LD = ld
 ASM = nasm
 
-# Flags (Crucial for bare metal!)
-# -m32: Compile for 32-bit
-# -ffreestanding: Don't assume standard libraries exist
-# -fno-pie: Disable Position Independent Executable (confuses raw binaries)
+# Compiler Flags
 CFLAGS = -m32 -ffreestanding -fno-pie -c
-LDFLAGS = -m elf_i386 -Ttext 0x1000 --oformat binary
+# Linker Flags (i386pe is the format for Windows MinGW trying to mimic elf)
+LDFLAGS = -m i386pe -Ttext 0x1000
 
 all: om3os.bin
 
+# Combine files using Windows CMD syntax
 om3os.bin: boot.bin kernel.bin
-	cat boot.bin kernel.bin > om3os.bin
+	cmd /c copy /b boot.bin+kernel.bin om3os.bin
 
 boot.bin: boot.asm
 	$(ASM) -f bin boot.asm -o boot.bin
 
+# Note: We link to .bin directly here if possible, 
+# or use objcopy if your linker forces .exe extensions
 kernel.bin: kernel.o
-	$(LD) $(LDFLAGS) -o kernel.bin kernel.o
+	$(LD) $(LDFLAGS) -o kernel.tmp kernel.o
+	objcopy -O binary kernel.tmp kernel.bin
 
 kernel.o: kernel.c
 	$(CC) $(CFLAGS) kernel.c -o kernel.o
 
+# Windows cleanup command
 clean:
-	rm -f *.bin *.o
+	del *.bin *.o *.tmp

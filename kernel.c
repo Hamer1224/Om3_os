@@ -1,22 +1,36 @@
-// kernel.c
-// GCC provides these header files for freestanding apps
-#include <stdint.h> 
+// kernel.c - OM3 OS
+// We define the height and width of the text mode screen
+#define VGA_WIDTH 80
+#define VGA_HEIGHT 25
 
-void kmain() {
-    // 0xb8000 is the address where the text screen video memory begins
-    volatile char* video_memory = (volatile char*)0xb8000;
-    
-    const char* str = "OM3 OS - Now in C!";
+// Pointer to video memory
+volatile char* video_memory = (volatile char*)0xb8000;
+
+// Function to clear the screen
+void clear_screen() {
+    for (int i = 0; i < VGA_WIDTH * VGA_HEIGHT * 2; i += 2) {
+        video_memory[i] = ' ';     // Space character (blank)
+        video_memory[i + 1] = 0x07; // Light grey on black
+    }
+}
+
+// Function to print a string at a specific location
+void print_string(const char* str, int row, int col) {
+    int offset = (row * VGA_WIDTH + col) * 2;
     int i = 0;
-    
-    // Simple loop to write characters to video memory
-    // Even bytes are the character, Odd bytes are the color
-    while (str[i] != '\0') {
-        video_memory[i * 2] = str[i];      // Character
-        video_memory[i * 2 + 1] = 0x0F;    // Color (White on Black)
+    while (str[i] != 0) {
+        video_memory[offset + (i * 2)] = str[i];
+        video_memory[offset + (i * 2) + 1] = 0x0F; // White on Black
         i++;
     }
+}
+
+void kmain() {
+    clear_screen();
     
-    // Loop forever so the OS doesn't crash
+    print_string("Welcome to OM3 OS", 0, 0);
+    print_string("Kernel loaded successfully.", 1, 0);
+    print_string("We are now running in 32-bit Protected Mode!", 3, 0);
+
     while(1);
 }
