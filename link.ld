@@ -1,6 +1,3 @@
-OUTPUT_FORMAT("pei-i386")
-ENTRY(start)
-
 SECTIONS
 {
     . = 0x1000;

@@ -1,7 +1,7 @@
 // kernel.c - OM3 OS Main Logic
 #include "headers.h"
 
-// Internal Memory
+// Internal Memory (Must NOT be static so holyhamer.c can read it)
 char key_buffer[256];
 int buffer_index = 0;
 
@@ -9,65 +9,33 @@ int buffer_index = 0;
 int holyhamer_mode = 0;
 int is_root = 0;
 
-// Forward declarations for set_keyboard_layout (since it's internal to keyboard.c logic usually)
-// In a pro setup, we'd add it to headers.h, but we can do it here:
-void set_keyboard_layout(char* layout);
-
-// --- HOLYHAMER ENGINE ---
-void run_holyhamer_code() {
-    print_string("\n"); 
-    if (strcmp(key_buffer, "exit") == 0) {
-        holyhamer_mode = 0;
-        print_string("exiting holyhamer...\n");
-    }
-    else if (starts_with(key_buffer, "print ")) {
-        print_string(key_buffer + 6);
-        print_string("\n");
-    }
-    else if (starts_with(key_buffer, "paint ")) {
-        set_terminal_color(key_buffer + 6);
-        print_string("color changed.\n");
-    }
-    else {
-        print_string("hh error.\n");
-    }
-}
-
+// --- TIME HELPER ---
 unsigned char get_rtc_register(int reg) {
-    port_byte_in(0x70);             // NMI disable isn't strictly needed but good practice
-    __asm__ volatile("outb %0, $0x70" : : "a"((unsigned char)reg));
-    unsigned char ret = port_byte_in(0x71);
-    return ret;
+    port_byte_out(0x70, reg);
+    return port_byte_in(0x71);
 }
 
-// CMOS sends "BCD" numbers (e.g. 15 is stored as hex 0x15, not 0x0F)
-// We need to decode this weird format.
 int bcd_to_bin(unsigned char bcd) {
     return ((bcd / 16) * 10) + (bcd & 0x0F);
 }
 
 void print_time() {
-    // Read values
     int second = bcd_to_bin(get_rtc_register(0x00));
     int minute = bcd_to_bin(get_rtc_register(0x02));
     int hour   = bcd_to_bin(get_rtc_register(0x04));
     
-    // Buffer to hold the number strings
     char buf[10];
 
-    // Print Hour
     int_to_string(hour, buf);
     print_string(buf);
     print_string(":");
 
-    // Print Minute
-    if (minute < 10) print_string("0"); // Padding zero
+    if (minute < 10) print_string("0");
     int_to_string(minute, buf);
     print_string(buf);
     print_string(":");
 
-    // Print Second
-    if (second < 10) print_string("0"); // Padding zero
+    if (second < 10) print_string("0");
     int_to_string(second, buf);
     print_string(buf);
     
@@ -78,39 +46,65 @@ void print_time() {
 void execute_command() {
     print_string("\n"); 
     if (holyhamer_mode) {
+        // This function is now inside holyhamer.c!
         run_holyhamer_code();
     } else {
         if (strcmp(key_buffer, "help") == 0) {
             print_string("  holyhamer    - programming mode\n");
-            print_string("  keyboard tr  - turkish q layout\n");
-            print_string("  keyboard us  - us layout\n");
-            print_string("  color <x>    - change color\n");
+            print_string("  write <n> <c>- save file\n");
+            print_string("  ls           - list files\n");
+            print_string("  cat <n>      - read file\n");
+            print_string("  format       - wipe disk\n");
         } 
         else if (strcmp(key_buffer, "holyhamer") == 0) {
             holyhamer_mode = 1; 
-            print_string("holyhamer compiler v0.2\n");
+            print_string("holyhamer compiler v1.0\n");
+            print_string("commands: var, add, sub, print\n");
+        }
+        else if (strcmp(key_buffer, "time") == 0) {
+            print_string("current time: ");
+            print_time();
+        }
+        else if (strcmp(key_buffer, "format") == 0) {
+            if (is_root) fs_format();
+            else print_string("error: root required.\n");
+        }
+        else if (strcmp(key_buffer, "ls") == 0) {
+            fs_list();
+        }
+        else if (starts_with(key_buffer, "write ")) {
+            char* name = key_buffer + 6;
+            char* content = name;
+            while (*content != ' ' && *content != 0) content++;
+            if (*content == ' ') {
+                *content = 0; 
+                content++;    
+                fs_create(name, content);
+            } else {
+                print_string("usage: write <name> <content>\n");
+            }
+        }
+        else if (starts_with(key_buffer, "cat ")) {
+            char* name = key_buffer + 4;
+            fs_read(name);
         }
         else if (strcmp(key_buffer, "keyboard tr") == 0) {
             set_keyboard_layout("tr");
-            print_string("keyboard set to turkish q.\n");
+            print_string("keyboard: tr\n");
         }
         else if (strcmp(key_buffer, "keyboard us") == 0) {
             set_keyboard_layout("us");
-            print_string("keyboard set to us qwerty.\n");
+            print_string("keyboard: us\n");
         }
         else if (starts_with(key_buffer, "color ")) {
             set_terminal_color(key_buffer + 6);
         }
-        else if (strcmp(key_buffer, "time") == 0) {
-            print_string("current rtc time: ");
-            print_time();
-        }
         else if (strcmp(key_buffer, "clear") == 0) {
             clear_screen(); 
-            // We can't access cursor_row directly if we didn't extern it, 
-            // but we did in headers.h, so this is valid:
-            extern int cursor_row;
-            cursor_row = -1; 
+        }
+        else if (strcmp(key_buffer, "super") == 0) {
+             if (is_root) { is_root = 0; print_string("now user.\n"); }
+             else { is_root = 1; print_string("now root.\n"); }
         }
         else if (buffer_index > 0) {
             print_string("unknown command.\n");
@@ -121,7 +115,6 @@ void execute_command() {
     for(int i=0; i<256; i++) key_buffer[i] = 0;
     buffer_index = 0;
 
-    extern int cursor_row;
     if (cursor_row < 0) cursor_row = 0;
     
     if (holyhamer_mode) print_string("hh> ");
@@ -130,8 +123,11 @@ void execute_command() {
 }
 
 void kmain() {
+    // Initialize HolyHamer Memory
+    hh_init();
+
     clear_screen();
-    print_string("welcome to om3 os v1.6 (modular)\n");
+    print_string("welcome to om3 os v2.1 (holyhamer enabled)\n");
     print_string("om3$ ");
     
     update_cursor();
@@ -141,18 +137,13 @@ void kmain() {
             unsigned char scan_code = port_byte_in(0x60);
             char c = get_key_from_scancode(scan_code);
 
-            if (c == 0) continue; // Handled internally (Caps lock, etc)
+            if (c == 0) continue; 
 
             if (c == '\b') {
                 if (buffer_index > 0) {
-                    // Backspace logic manually here or move to screen.c later
-                    // For now, let's keep it simple:
                     print_backspace();
-                
-                    // Remove character from Memory (Buffer)
                     buffer_index--;
                     key_buffer[buffer_index] = 0;
-                    
                     update_cursor();
                 }
             }
