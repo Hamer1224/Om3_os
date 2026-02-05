@@ -1,51 +1,60 @@
-; OM3 OS - Interactive Version
-; ----------------------------
-bits 16
-org 0x7c00
+; boot.asm - Loads C kernel and jumps to 32-bit mode
+[org 0x7c00]
+[bits 16]
 
 start:
-    ; 1. Set up segments
-    xor ax, ax
+    ; 1. Load the Kernel from Disk
+    ; We are going to read 5 sectors just to be safe
+    mov bx, 0x1000      ; Load kernel to address 0x1000
+    mov ah, 0x02        ; BIOS Read Sector Function
+    mov al, 5           ; Read 5 sectors
+    mov ch, 0           ; Cylinder 0
+    mov dh, 0           ; Head 0
+    mov cl, 2           ; Start reading from Sector 2 (Sector 1 is bootloader)
+    int 0x13            ; Call Disk Interrupt
+
+    ; 2. Switch to 32-bit Protected Mode
+    cli                 ; Disable interrupts (critical!)
+    lgdt [gdt_descriptor] ; Load the Global Descriptor Table
+    
+    mov eax, cr0
+    or eax, 0x1         ; Set the first bit of Control Register 0
+    mov cr0, eax
+    
+    jmp CODE_SEG:init_pm ; Far jump to flush the CPU pipeline
+
+[bits 32]
+init_pm:
+    ; 3. Set up segment registers for 32-bit mode
+    mov ax, DATA_SEG
     mov ds, ax
+    mov ss, ax
     mov es, ax
+    mov fs, ax
+    mov gs, ax
+    
+    mov ebp, 0x90000    ; Update stack position
+    mov esp, ebp
 
-    ; 2. Set Video Mode (Text Mode 80x25, 16 colors)
-    ; This clears the screen and ensures we are in color mode.
-    mov ah, 0x00    ; BIOS function: Set Video Mode
-    mov al, 0x03    ; Mode 3: 80x25 Color Text
-    int 0x10        ; Call Video Interrupt
+    call 0x1000         ; Jump to our C kernel!
+    jmp $
 
-    ; 3. Print the prompt
-    mov si, msg_prompt
-    call print_string
+; --- GDT (Global Descriptor Table) ---
+; This is boilerplate magic required for 32-bit mode.
+gdt_start:
+    dq 0x0              ; Null Descriptor
+gdt_code:               ; Code Segment
+    dw 0xffff, 0x0, 0x9a00, 0x00cf
+gdt_data:               ; Data Segment
+    dw 0xffff, 0x0, 0x9200, 0x00cf
+gdt_end:
 
-main_loop:
-    ; 4. Wait for a keystroke
-    mov ah, 0x00    ; BIOS function: Read Key
-    int 0x16        ; Call Keyboard Interrupt
-    ; Result: AL now holds the ASCII character, AH holds the Scan Code.
+gdt_descriptor:
+    dw gdt_end - gdt_start - 1
+    dd gdt_start
 
-    ; 5. Print the character you just typed
-    mov ah, 0x0E    ; BIOS function: Teletype Output
-    int 0x10        ; Call Video Interrupt
+CODE_SEG equ gdt_code - gdt_start
+DATA_SEG equ gdt_data - gdt_start
 
-    jmp main_loop   ; Jump back to wait for the next key
-
-; --- Function: Print String ---
-print_string:
-    mov ah, 0x0e
-.loop:
-    lodsb
-    cmp al, 0
-    je .done
-    int 0x10
-    jmp .loop
-.done:
-    ret
-
-; --- Data ---
-msg_prompt db 'OM3 OS v0.1 - Type something: ', 0
-
-; --- Boot Sector Magic ---
 times 510-($-$$) db 0
 dw 0xaa55
