@@ -52,6 +52,31 @@ void print_char(char c) {
     }
 }
 
+void print_backspace() {
+    // 1. First, erase the current cursor visual (the underscore)
+    int offset = (cursor_row * VGA_WIDTH + cursor_col) * 2;
+    video_memory[offset] = ' ';
+    video_memory[offset + 1] = current_color;
+
+    // 2. Decrease the cursor position
+    cursor_col--;
+
+    // 3. Handle Reverse Wrapping (Moving back to the previous line)
+    if (cursor_col < 0) {
+        cursor_col = VGA_WIDTH - 1; // Go to end of previous line
+        cursor_row--;
+        if (cursor_row < 0) {
+            cursor_row = 0; // Don't go off screen at the top
+            cursor_col = 0;
+        }
+    }
+
+    // 4. Erase the character at the new position
+    offset = (cursor_row * VGA_WIDTH + cursor_col) * 2;
+    video_memory[offset] = ' ';
+    video_memory[offset + 1] = current_color;
+}
+
 void print_string(char* str) {
     int i = 0;
     while (str[i] != 0) {

@@ -28,6 +28,7 @@ void memory_copy(char* source, char* dest, int no_bytes);
 void clear_screen();
 void print_string(char* str);
 void print_char(char c);
+void print_backspace();
 void update_cursor();
 void set_terminal_color(char* color_name);
 

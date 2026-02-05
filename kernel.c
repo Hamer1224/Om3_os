@@ -102,23 +102,13 @@ void kmain() {
                 if (buffer_index > 0) {
                     // Backspace logic manually here or move to screen.c later
                     // For now, let's keep it simple:
-                    print_char('\b'); // Not implemented visually yet, so we do manual:
-                    
-                    extern int cursor_col;
-                    extern int cursor_row;
-                    int offset = (cursor_row * VGA_WIDTH + (cursor_col-1)) * 2;
-                    // Visual hack for now (we should move backspace logic to screen.c eventually)
-                     // Re-implementing visual backspace briefly here for safety:
-                    if (cursor_col > 0) {
-                         cursor_col--;
-                         offset = (cursor_row * VGA_WIDTH + cursor_col) * 2;
-                         char* vid = (char*)VIDEO_ADDRESS;
-                         vid[offset] = ' ';
-                         update_cursor();
-                    }
-
+                    print_backspace();
+                
+                    // Remove character from Memory (Buffer)
                     buffer_index--;
                     key_buffer[buffer_index] = 0;
+                    
+                    update_cursor();
                 }
             }
             else if (c == '\n') {
