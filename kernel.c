@@ -1,4 +1,4 @@
-// kernel.c - OM3 OS with Scrolling
+// kernel.c - OM3 OS v1.4 (Colors!)
 #define VGA_WIDTH 80
 #define VGA_HEIGHT 25
 
@@ -10,9 +10,10 @@ int cursor_row = 0;
 char key_buffer[256];
 int buffer_index = 0;
 
-// GLOBAL FLAGS
+// --- STATE FLAGS ---
 int holyhamer_mode = 0;
 int is_root = 0; 
+unsigned char current_color = 0x0F; // Default: White (F) on Black (0)
 
 // --- 1. LOW LEVEL I/O ---
 unsigned char port_byte_in(unsigned short port) {
@@ -45,63 +46,54 @@ unsigned char keyboard_map[128] = {
   'z', 'x', 'c', 'v', 'b', 'n', 'm', ',', '.', '/',   0, '*',   0, ' ',   0,
 };
 
-// --- 4. VIDEO DRIVER (With Scrolling!) ---
-
-// Move all text up by one line
+// --- 4. VIDEO DRIVER ---
 void scroll() {
-    // 1. Move everything up
-    // We copy from the 2nd line (index 160) to the 1st line (index 0)
-    // We do this for the entire screen minus one row.
+    // Move lines up
     for (int i = 0; i < (VGA_HEIGHT - 1) * VGA_WIDTH * 2; i++) {
         video_memory[i] = video_memory[i + (VGA_WIDTH * 2)];
     }
-
-    // 2. Clear the last line
-    // We start at the last row and fill it with spaces
+    // Clear bottom line
     for (int i = (VGA_HEIGHT - 1) * VGA_WIDTH * 2; i < VGA_HEIGHT * VGA_WIDTH * 2; i += 2) {
         video_memory[i] = ' ';
-        video_memory[i + 1] = 0x0F;
+        video_memory[i + 1] = current_color;
     }
 }
 
 void update_cursor() {
     int offset = (cursor_row * VGA_WIDTH + cursor_col) * 2;
     video_memory[offset] = '_';
-    video_memory[offset + 1] = 0x0F;
+    video_memory[offset + 1] = current_color;
 }
 
 void clear_cursor_visual() {
     int offset = (cursor_row * VGA_WIDTH + cursor_col) * 2;
     video_memory[offset] = ' ';
-    video_memory[offset + 1] = 0x0F;
+    video_memory[offset + 1] = current_color;
 }
 
 void print_char(char c) {
-    // 1. Handle Newline
     if (c == '\n') {
         clear_cursor_visual();
         cursor_row++;
         cursor_col = 0;
     }
-    // 2. Handle Normal Char
     else {
         clear_cursor_visual();
         int offset = (cursor_row * VGA_WIDTH + cursor_col) * 2;
         video_memory[offset] = c;
-        video_memory[offset + 1] = 0x0F;
+        // USE THE CUSTOM COLOR HERE
+        video_memory[offset + 1] = current_color; 
         cursor_col++;
     }
 
-    // 3. Handle Wrapping (End of line)
     if (cursor_col >= VGA_WIDTH) {
         cursor_col = 0;
         cursor_row++;
     }
 
-    // 4. Handle SCROLLING (End of screen)
     if (cursor_row >= VGA_HEIGHT) {
         scroll();
-        cursor_row = VGA_HEIGHT - 1; // Stay on the last line
+        cursor_row = VGA_HEIGHT - 1;
     }
 }
 
@@ -116,10 +108,21 @@ void print_string(const char* str) {
 void clear_screen() {
     for (int i = 0; i < VGA_WIDTH * VGA_HEIGHT * 2; i += 2) {
         video_memory[i] = ' ';
-        video_memory[i + 1] = 0x0F;
+        video_memory[i + 1] = current_color;
     }
     cursor_col = 0;
     cursor_row = 0;
+}
+
+// --- helper to change color ---
+void set_terminal_color(char* color_name) {
+    if (strcmp(color_name, "red") == 0) current_color = 0x04;      // Red
+    else if (strcmp(color_name, "blue") == 0) current_color = 0x01; // Blue
+    else if (strcmp(color_name, "green") == 0) current_color = 0x02;// Green
+    else if (strcmp(color_name, "cyan") == 0) current_color = 0x03; // Cyan
+    else if (strcmp(color_name, "white") == 0) current_color = 0x0F;// White
+    else if (strcmp(color_name, "purple") == 0) current_color = 0x05;// Purple
+    else print_string("unknown color. try red, blue, green, cyan, purple, white.\n");
 }
 
 // --- 5. HOLYHAMER ENGINE ---
@@ -128,12 +131,18 @@ void run_holyhamer_code() {
 
     if (strcmp(key_buffer, "exit") == 0) {
         holyhamer_mode = 0;
-        print_string("exiting holyhamer environment...\n");
+        print_string("exiting holyhamer...\n");
     }
     else if (starts_with(key_buffer, "print ")) {
         char* content = key_buffer + 6;
         print_string(content);
         print_string("\n");
+    }
+    // NEW COMMAND: paint <color>
+    else if (starts_with(key_buffer, "paint ")) {
+        char* color = key_buffer + 6;
+        set_terminal_color(color);
+        print_string("brush color changed.\n");
     }
     else {
         print_string("hh error: syntax error.\n");
@@ -150,27 +159,27 @@ void execute_command() {
     else {
         if (strcmp(key_buffer, "help") == 0) {
             print_string("  holyhamer - programming mode\n");
-            print_string("  super     - become root (sudo)\n");
-            print_string("  whoami    - show current user\n");
+            print_string("  super     - become root\n");
+            print_string("  color <x> - change color (red, blue...)\n");
             print_string("  clear     - clear screen\n");
         } 
         else if (strcmp(key_buffer, "holyhamer") == 0) {
             holyhamer_mode = 1; 
-            print_string("holyhamer compiler v0.1 initialized.\n");
-            print_string("type 'exit' to return.\n");
+            print_string("holyhamer compiler v0.2\n");
+            print_string("commands: print ..., paint <color>, exit\n");
         }
         else if (strcmp(key_buffer, "super") == 0) {
             if (is_root == 0) {
                 is_root = 1;
-                print_string("password accepted. you are now root.\n");
+                print_string("password accepted. root access granted.\n");
             } else {
                 is_root = 0;
-                print_string("you are now a standard user.\n");
+                print_string("root access dropped.\n");
             }
         }
-        else if (strcmp(key_buffer, "whoami") == 0) {
-            if (is_root == 1) print_string("root\n");
-            else print_string("user\n");
+        else if (starts_with(key_buffer, "color ")) {
+            char* color_name = key_buffer + 6;
+            set_terminal_color(color_name);
         }
         else if (strcmp(key_buffer, "clear") == 0) {
             clear_screen();
@@ -185,7 +194,7 @@ void execute_command() {
     for(int i=0; i<256; i++) key_buffer[i] = 0;
     buffer_index = 0;
 
-    // Fix prompt position after clear/scroll
+    // Prompt
     if (cursor_row < 0) cursor_row = 0;
 
     if (holyhamer_mode == 1) {
@@ -199,8 +208,8 @@ void execute_command() {
 // --- 7. MAIN KERNEL ---
 void kmain() {
     clear_screen();
-    print_string("welcome to om3 os v1.3 (scrolling enabled)\n");
-    print_string("type 'help' for commands.\n\n");
+    print_string("welcome to om3 os v1.4\n");
+    print_string("now in technicolor!\n\n");
     print_string("om3$ ");
     
     update_cursor();
@@ -216,7 +225,7 @@ void kmain() {
                         clear_cursor_visual();
                         cursor_col--;
                         int offset = (cursor_row * VGA_WIDTH + cursor_col) * 2;
-                        video_memory[offset] = ' '; video_memory[offset + 1] = 0x0F;
+                        video_memory[offset] = ' '; video_memory[offset + 1] = current_color;
                         buffer_index--;
                         key_buffer[buffer_index] = 0;
                         update_cursor();
