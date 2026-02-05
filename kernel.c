@@ -33,6 +33,47 @@ void run_holyhamer_code() {
     }
 }
 
+unsigned char get_rtc_register(int reg) {
+    port_byte_in(0x70);             // NMI disable isn't strictly needed but good practice
+    __asm__ volatile("outb %0, $0x70" : : "a"((unsigned char)reg));
+    unsigned char ret = port_byte_in(0x71);
+    return ret;
+}
+
+// CMOS sends "BCD" numbers (e.g. 15 is stored as hex 0x15, not 0x0F)
+// We need to decode this weird format.
+int bcd_to_bin(unsigned char bcd) {
+    return ((bcd / 16) * 10) + (bcd & 0x0F);
+}
+
+void print_time() {
+    // Read values
+    int second = bcd_to_bin(get_rtc_register(0x00));
+    int minute = bcd_to_bin(get_rtc_register(0x02));
+    int hour   = bcd_to_bin(get_rtc_register(0x04));
+    
+    // Buffer to hold the number strings
+    char buf[10];
+
+    // Print Hour
+    int_to_string(hour, buf);
+    print_string(buf);
+    print_string(":");
+
+    // Print Minute
+    if (minute < 10) print_string("0"); // Padding zero
+    int_to_string(minute, buf);
+    print_string(buf);
+    print_string(":");
+
+    // Print Second
+    if (second < 10) print_string("0"); // Padding zero
+    int_to_string(second, buf);
+    print_string(buf);
+    
+    print_string(" UTC\n");
+}
+
 // --- SHELL ---
 void execute_command() {
     print_string("\n"); 
@@ -59,6 +100,10 @@ void execute_command() {
         }
         else if (starts_with(key_buffer, "color ")) {
             set_terminal_color(key_buffer + 6);
+        }
+        else if (strcmp(key_buffer, "time") == 0) {
+            print_string("current rtc time: ");
+            print_time();
         }
         else if (strcmp(key_buffer, "clear") == 0) {
             clear_screen(); 

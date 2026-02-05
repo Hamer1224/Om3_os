@@ -22,6 +22,7 @@ extern int is_root;
 unsigned char port_byte_in(unsigned short port);
 int strcmp(char s1[], char s2[]);
 int starts_with(char *main, char *prefix);
+void int_to_string(int n, char str[]);
 void memory_copy(char* source, char* dest, int no_bytes);
 
 // screen.c
