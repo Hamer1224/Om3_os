@@ -10,6 +10,7 @@
 extern int cursor_col;
 extern int cursor_row;
 extern unsigned char current_color;
+extern unsigned char terminal_attribute;
 extern int holyhamer_mode;
 extern int is_root;
 
@@ -50,5 +51,6 @@ void fs_delete(char* name);
 // --- HOLYHAMER (holyhamer.c) ---
 void hh_init();
 void run_holyhamer_code();
+void set_terminal_background(char* color_name);
 
 #endif
