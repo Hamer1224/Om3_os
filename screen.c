@@ -128,7 +128,9 @@ void clear_screen()
         // Set the color to our GLOBAL attribute variable
         vga_mem[i * 2 + 1] = terminal_attribute;
     }
-
+    cursor_row = 0;
+    cursor_col = 0;
+    update_cursor(); // Tell the hardware cursor to move to (0,0)
 }
 
 

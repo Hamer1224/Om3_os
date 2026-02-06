@@ -56,7 +56,22 @@ void run_holyhamer_code()
         clear_screen();
         print_string("Background updated.\n");
     }
-
+    // Force jump to top
+    else if (strcmp(key_buffer, "top") == 0)
+    {
+        extern int cursor_row, cursor_col;
+        cursor_row = 0;
+        cursor_col = 0;
+        update_cursor();
+        print_string("Jumped to top.\n");
+    }
+    // Fun system info
+    else if (strcmp(key_buffer, "about") == 0)
+    {
+        print_string("HolyHamer Kernel v1.2\n");
+        print_string("Status: Running in 32-bit Protected Mode\n");
+        print_string("Hardware: VGA Text Mode 80x25\n");
+    }
     // --- LIST VARIABLES ---
     else if (strcmp(key_buffer, "list") == 0)
     {
