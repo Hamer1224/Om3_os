@@ -3,6 +3,7 @@
 extern char key_buffer[256];
 extern int holyhamer_mode;
 
+// Memory for a-z
 int variables[26];
 
 void hh_init()
@@ -20,9 +21,6 @@ int get_var_index(char c)
 
 void run_holyhamer_code()
 {
-    extern char key_buffer[];
-    extern int holyhamer_mode;
-
     print_string("\n");
 
     if (strcmp(key_buffer, "exit") == 0)
@@ -30,7 +28,24 @@ void run_holyhamer_code()
         holyhamer_mode = 0;
         print_string("exiting holyhamer...\n");
     }
-    // --- SET VARIABLE (var a = 10) ---
+    // New "list" command to see all your variables
+    else if (strcmp(key_buffer, "list") == 0)
+    {
+        for (int i = 0; i < 26; i++)
+        {
+            if (variables[i] != 0)
+            {
+                char out[16];
+                char name[3] = {(char)('a' + i), ':', ' '};
+                print_string(name);
+                int_to_string(variables[i], out);
+                print_string(out);
+                print_string("  ");
+            }
+        }
+        print_string("\n");
+    }
+    // Variable Assignment
     else if (starts_with(key_buffer, "var "))
     {
         char var_char = key_buffer[4];
@@ -45,7 +60,7 @@ void run_holyhamer_code()
             print_string("saved.\n");
         }
     }
-    // --- MATH OPERATIONS ---
+    // Math: add, sub, mul, div
     else if (starts_with(key_buffer, "add ") || starts_with(key_buffer, "sub ") ||
              starts_with(key_buffer, "mul ") || starts_with(key_buffer, "div "))
     {
@@ -61,21 +76,19 @@ void run_holyhamer_code()
         {
             if (starts_with(key_buffer, "add "))
                 variables[idx] += val;
-            if (starts_with(key_buffer, "sub "))
+            else if (starts_with(key_buffer, "sub "))
                 variables[idx] -= val;
-            if (starts_with(key_buffer, "mul "))
+            else if (starts_with(key_buffer, "mul "))
                 variables[idx] *= val;
-            if (starts_with(key_buffer, "div ") && val != 0)
+            else if (starts_with(key_buffer, "div ") && val != 0)
                 variables[idx] /= val;
             print_string("done.\n");
         }
     }
-    // --- AUTOMATIC PRINT (print a) ---
+    // Printing
     else if (starts_with(key_buffer, "print "))
     {
         char *content = key_buffer + 6;
-
-        // If it's a single letter, print the variable value
         if (content[0] >= 'a' && content[0] <= 'z' && content[1] == '\0')
         {
             int idx = get_var_index(content[0]);
@@ -89,9 +102,5 @@ void run_holyhamer_code()
             print_string(content);
             print_string("\n");
         }
-    }
-    else if (key_buffer[0] != '\0')
-    {
-        print_string("hh error: unknown command.\n");
     }
 }
