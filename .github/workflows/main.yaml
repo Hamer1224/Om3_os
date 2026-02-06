@@ -1,0 +1,26 @@
+name: Om3 OS CI Pipeline
+
+on: [push, pull_request]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install Compilers
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y gcc-multilib nasm binutils
+
+      - name: Build OS Image
+        run: |
+          make clean
+          make
+
+      - name: Upload OS Binary
+        uses: actions/upload-artifact@v4
+        with:
+          name: om3os-build
+          path: om3os.bin
