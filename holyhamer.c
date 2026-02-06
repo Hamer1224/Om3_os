@@ -46,6 +46,13 @@ void run_holyhamer_code()
         print_string("- bg <color>       : Change background\n");
         print_string("- cls              : Clear screen\n");
     }
+    else if (strcmp(key_buffer, "status") == 0)
+    {
+        print_string("System: Om3 OS Core\n");
+        print_string("Compiler: HolyHamer v1.2\n");
+        print_string("Architecture: x86 (32-bit)\n");
+        print_string("Status: Stable\n");
+    }
 
     // --- BACKGROUND COLOR (bg) ---
     else if (starts_with(key_buffer, "bg "))
