@@ -3,6 +3,7 @@
 
 // Internal Memory (Must NOT be static so holyhamer.c can read it)
 char key_buffer[256];
+char current_path[256] = "/";
 int buffer_index = 0;
 
 // Flags
@@ -83,6 +84,9 @@ void execute_command() {
             } else {
                 print_string("usage: write <name> <content>\n");
             }
+        }
+        else if (starts_with(key_buffer, "cd ")) {
+                filesystem_cd(key_buffer + 3);
         }
         else if (starts_with(key_buffer, "cat ")) {
             char* name = key_buffer + 4;
