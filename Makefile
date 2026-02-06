@@ -27,3 +27,8 @@ boot.bin: boot.asm
 							# The "Clean" command to fix build errors
 clean:
 	rm -f *.o *.bin om3os.bin
+release: all
+	@echo "Packaging release version..."
+	# This creates a copy and renames it with a version number
+	cp om3os.bin om3os_v1.2_release.bin
+	@echo "Release created: om3os_v1.2_release.bin"
