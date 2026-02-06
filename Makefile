@@ -1,28 +1,29 @@
-C_SOURCES = $(wildcard *.c)
-HEADERS = $(wildcard *.h)
-OBJ = ${C_SOURCES:.c=.o} entry.o
+# List all object files
+OBJ = entry.o kernel.o utils.o screen.o keyboard.o disk.o fs.o holyhamer.o
 
-# Flags for 32-bit cross-compilation on 64-bit Linux
-CFLAGS = -m32 -ffreestanding -fno-pie -fno-stack-protector -nostdinc -I.
-
+# Build the final OS image
 all: om3os.bin
 
 om3os.bin: boot.bin kernel.bin
 	dd if=/dev/zero of=padding.bin bs=1M count=10
-		cat boot.bin kernel.bin padding.bin > om3os.bin
-			rm padding.bin
+	cat boot.bin kernel.bin padding.bin > om3os.bin
+	rm padding.bin
 
-			kernel.bin: ${OBJ}
-				ld -m elf_i386 -T link.ld -o $@ $^ --oformat binary
+			# Link the kernel
+kernel.bin: $(OBJ)
+	ld -m elf_i386 -T link.ld -o kernel.bin $(OBJ) --oformat binary
 
-				%.o: %.c ${HEADERS}
-					gcc ${CFLAGS} -c $< -o $@
+				# Compile C files
+%.o: %.c
+	gcc -m32 -ffreestanding -fno-stack-protector -c $< -o $@
 
-					entry.o: entry.asm
-						nasm -f elf32 $< -o $@
+entry.o: entry.asm
+	nasm -f elf32 entry.asm -o entry.o
 
-						boot.bin: boot.asm
-							nasm -f bin $< -o $@
+						# Assemble bootloader
+boot.bin: boot.asm
+	nasm -f bin boot.asm -o boot.bin
 
-							clean:
-								rm -rf *.o *.bin kernel.bin om3os.bin
+							# The "Clean" command to fix build errors
+clean:
+	rm -f *.o *.bin om3os.bin
