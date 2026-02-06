@@ -1,6 +1,6 @@
 # List all object files
 OBJ = entry.o kernel.o utils.o screen.o keyboard.o disk.o fs.o holyhamer.o
-
+CFLAGS = -m32 -ffreestanding -fno-stack-protector -fno-pic -fno-pie -c
 # Build the final OS image
 all: om3os.bin
 
@@ -15,7 +15,7 @@ kernel.bin: $(OBJ)
 
 				# Compile C files
 %.o: %.c
-	gcc -m32 -ffreestanding -fno-stack-protector -c $< -o $@
+	gcc $(CFLAGS) $< -o $@
 
 entry.o: entry.asm
 	nasm -f elf32 entry.asm -o entry.o

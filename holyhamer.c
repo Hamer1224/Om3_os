@@ -1,5 +1,8 @@
 #include "headers.h"
 
+extern char key_buffer[256];
+extern int holyhamer_mode;
+
 int variables[26];
 
 void hh_init()
