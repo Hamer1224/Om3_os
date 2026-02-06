@@ -1,4 +1,4 @@
-# Om3 OS - HolyHamer Edition 🚀
+# Om3 OS - HolyHamer Edition
 
 Om3 OS is a custom 32-bit x86 operating system built from scratch. It features a custom shell environment and a built-in compiler/interpreter called **HolyHamer**.
 
