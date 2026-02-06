@@ -92,6 +92,30 @@ void int_to_string(int n, char str[])
     str[i] = '\0';
     reverse(str);
 }
+int strlen(char *s)
+{
+    int i = 0;
+    while (s[i] != '\0')
+        i++;
+    return i;
+}
+
+void strcat(char *dest, char *src)
+{
+    int i = 0;
+    int j = 0;
+    // Find the end of dest
+    while (dest[i] != '\0')
+        i++;
+    // Append src to dest
+    while (src[j] != '\0')
+    {
+        dest[i] = src[j];
+        i++;
+        j++;
+    }
+    dest[i] = '\0'; // Always null-terminate!
+}
 
 int string_to_int(char *str)
 {
@@ -149,5 +173,4 @@ void filesystem_cd(char *path)
     print_string("Path: ");
     print_string(current_path);
     print_string("\n");
-}
 }

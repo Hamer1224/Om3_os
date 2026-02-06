@@ -1,0 +1,24 @@
+🚀 [DevOps] Starting automated build...
+rm -f *.o *.bin om3os.bin
+nasm -f bin boot.asm -o boot.bin
+# The "Clean" command to fix build errors
+nasm -f elf32 entry.asm -o entry.o
+# Assemble bootloader
+gcc -m32 -ffreestanding -fno-stack-protector -fno-pic -fno-pie -c kernel.c -o kernel.o
+gcc -m32 -ffreestanding -fno-stack-protector -fno-pic -fno-pie -c utils.c -o utils.o
+gcc -m32 -ffreestanding -fno-stack-protector -fno-pic -fno-pie -c screen.c -o screen.o
+gcc -m32 -ffreestanding -fno-stack-protector -fno-pic -fno-pie -c keyboard.c -o keyboard.o
+gcc -m32 -ffreestanding -fno-stack-protector -fno-pic -fno-pie -c disk.c -o disk.o
+gcc -m32 -ffreestanding -fno-stack-protector -fno-pic -fno-pie -c fs.c -o fs.o
+gcc -m32 -ffreestanding -fno-stack-protector -fno-pic -fno-pie -c holyhamer.c -o holyhamer.o
+ld -m elf_i386 -T link.ld -o kernel.bin entry.o kernel.o utils.o screen.o keyboard.o disk.o fs.o holyhamer.o --oformat binary
+# Compile C files
+dd if=/dev/zero of=padding.bin bs=1M count=10
+10+0 records in
+10+0 records out
+10485760 bytes (10 MB, 10 MiB) copied, 0.00620776 s, 1.7 GB/s
+cat boot.bin kernel.bin padding.bin > om3os.bin
+rm padding.bin
+# Link the kernel
+✅ Build Successful at Fri Feb  6 12:45:42 UTC 2026
+🌐 OS Deployed to VNC.
