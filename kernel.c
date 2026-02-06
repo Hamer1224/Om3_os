@@ -130,6 +130,11 @@ void execute_command()
         {
             set_terminal_color(key_buffer + 6);
         }
+        else if (ends_with(key_buffer, ".hlmr"))
+        {
+            // Only run this if it's NOT a write command
+            run_hlmr_file(key_buffer);
+        }
         else if (strcmp(key_buffer, "clear") == 0)
         {
             clear_screen();
@@ -173,7 +178,7 @@ void kmain()
 {
     // Initialize HolyHamer Memory
     hh_init();
-
+    fs_init();
     clear_screen();
     print_string("welcome to om3 os v2.1 (holyhamer enabled)\n");
     print_string("om3$ ");
