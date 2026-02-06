@@ -6,7 +6,8 @@
 #define FILE_NAME_LEN 16
 
 // The structure of one file entry (Total 32 bytes)
-struct FileEntry {
+struct FileEntry
+{
     char name[FILE_NAME_LEN]; // 16 bytes
     int sector_id;            // 4 bytes (Where the data is)
     int size;                 // 4 bytes
@@ -14,22 +15,26 @@ struct FileEntry {
 };
 
 // We need a buffer to hold the file table (512 bytes)
-struct FileEntry file_table[MAX_FILES]; 
+struct FileEntry file_table[MAX_FILES];
 char sector_buffer[512]; // General purpose buffer
 
 // Load the table from disk into memory
-void load_table() {
+void load_table()
+{
     ata_read_sector(FS_START_SECTOR, file_table);
 }
 
 // Save the memory table back to disk
-void save_table() {
+void save_table()
+{
     ata_write_sector(FS_START_SECTOR, file_table);
 }
 
 // 1. FORMAT: Wipe the table
-void fs_format() {
-    for (int i = 0; i < MAX_FILES; i++) {
+void fs_format()
+{
+    for (int i = 0; i < MAX_FILES; i++)
+    {
         file_table[i].name[0] = 0; // Empty name = Free slot
         file_table[i].sector_id = 0;
         file_table[i].size = 0;
@@ -39,12 +44,15 @@ void fs_format() {
 }
 
 // 2. LIST: Show files
-void fs_list() {
+void fs_list()
+{
     load_table();
     print_string("--- omfs files ---\n");
     int found = 0;
-    for (int i = 0; i < MAX_FILES; i++) {
-        if (file_table[i].name[0] != 0) {
+    for (int i = 0; i < MAX_FILES; i++)
+    {
+        if (file_table[i].name[0] != 0)
+        {
             print_string(file_table[i].name);
             print_string(" (size: ");
             char size_str[10];
@@ -54,22 +62,27 @@ void fs_list() {
             found = 1;
         }
     }
-    if (!found) print_string("(empty)\n");
+    if (!found)
+        print_string("(empty)\n");
 }
 
 // 3. CREATE: Write a new file
-void fs_create(char* name, char* content) {
+void fs_create(char *name, char *content)
+{
     load_table();
-    
+
     // Find free slot
     int slot = -1;
-    for (int i = 0; i < MAX_FILES; i++) {
-        if (file_table[i].name[0] == 0) {
+    for (int i = 0; i < MAX_FILES; i++)
+    {
+        if (file_table[i].name[0] == 0)
+        {
             slot = i;
             break;
         }
     }
-    if (slot == -1) {
+    if (slot == -1)
+    {
         print_string("error: disk full (max 16 files).\n");
         return;
     }
@@ -77,16 +90,18 @@ void fs_create(char* name, char* content) {
     // Write content to the data sector
     // Data sectors start at 101, 102, etc. (100 + 1 + slot)
     int data_sector = FS_START_SECTOR + 1 + slot;
-    
+
     // Clear buffer and copy content
-    for(int i=0; i<512; i++) sector_buffer[i] = 0;
-    
+    for (int i = 0; i < 512; i++)
+        sector_buffer[i] = 0;
+
     int len = 0;
-    while(content[len] != 0 && len < 512) {
+    while (content[len] != 0 && len < 512)
+    {
         sector_buffer[len] = content[len];
         len++;
     }
-    
+
     ata_write_sector(data_sector, sector_buffer);
 
     // Update Table
@@ -101,10 +116,13 @@ void fs_create(char* name, char* content) {
 }
 
 // 4. READ: Cat a file
-void fs_read(char* name) {
+void fs_read(char *name)
+{
     load_table();
-    for (int i = 0; i < MAX_FILES; i++) {
-        if (strcmp(file_table[i].name, name) == 0) {
+    for (int i = 0; i < MAX_FILES; i++)
+    {
+        if (strcmp(file_table[i].name, name) == 0)
+        {
             // Found it! Read the data sector.
             ata_read_sector(file_table[i].sector_id, sector_buffer);
             print_string("content: ");
@@ -115,3 +133,34 @@ void fs_read(char* name) {
     }
     print_string("error: file not found.\n");
 }
+
+// A simple structure for a file
+typedef struct
+{
+    char name[32];
+    char content[512];
+    int active;
+} VirtualFile;
+
+VirtualFile rom_disk[10]; // Can store 10 files
+
+void fs_init()
+{
+    // Let's pre-load your first HolyHamer script!
+    strcpy(rom_disk[0].name, "start.hlmr");
+    strcpy(rom_disk[0].content, "bg blue\ntext yellow\necho Booting Script...\nvar x = 5\nmul x 10\nprint x\n");
+    rom_disk[0].active = 1;
+}
+
+char *fs_read_file(char *filename)
+{
+    for (int i = 0; i < 10; i++)
+    {
+        if (rom_disk[i].active && strcmp(rom_disk[i].name, filename) == 0)
+        {
+            return rom_disk[i].content;
+        }
+    }
+    return (char *)0; // File not found
+}
+

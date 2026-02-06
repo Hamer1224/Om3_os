@@ -10,15 +10,28 @@ gcc -m32 -ffreestanding -fno-stack-protector -fno-pic -fno-pie -c screen.c -o sc
 gcc -m32 -ffreestanding -fno-stack-protector -fno-pic -fno-pie -c keyboard.c -o keyboard.o
 gcc -m32 -ffreestanding -fno-stack-protector -fno-pic -fno-pie -c disk.c -o disk.o
 gcc -m32 -ffreestanding -fno-stack-protector -fno-pic -fno-pie -c fs.c -o fs.o
+fs.c: In function ‘fs_init’:
+fs.c:150:5: warning: implicit declaration of function ‘strcpy’ [-Wimplicit-function-declaration]
+  150 |     strcpy(rom_disk[0].name, "start.hlmr");
+      |     ^~~~~~
+fs.c:3:1: note: ‘strcpy’ is defined in header ‘<string.h>’; did you forget to ‘#include <string.h>’?
+    2 | #include "headers.h"
+  +++ |+#include <string.h>
+    3 | 
 gcc -m32 -ffreestanding -fno-stack-protector -fno-pic -fno-pie -c holyhamer.c -o holyhamer.o
+holyhamer.c: In function ‘run_hlmr_file’:
+holyhamer.c:23:26: warning: implicit declaration of function ‘fs_read_file’ [-Wimplicit-function-declaration]
+   23 |     char *file_content = fs_read_file(filename); // Your FS read function
+      |                          ^~~~~~~~~~~~
+holyhamer.c:23:26: warning: initialization of ‘char *’ from ‘int’ makes pointer from integer without a cast [-Wint-conversion]
 ld -m elf_i386 -T link.ld -o kernel.bin entry.o kernel.o utils.o screen.o keyboard.o disk.o fs.o holyhamer.o --oformat binary
 # Compile C files
 dd if=/dev/zero of=padding.bin bs=1M count=10
 10+0 records in
 10+0 records out
-10485760 bytes (10 MB, 10 MiB) copied, 0.00620776 s, 1.7 GB/s
+10485760 bytes (10 MB, 10 MiB) copied, 0.00520406 s, 2.0 GB/s
 cat boot.bin kernel.bin padding.bin > om3os.bin
 rm padding.bin
 # Link the kernel
-✅ Build Successful at Fri Feb  6 12:45:42 UTC 2026
+✅ Build Successful at Fri Feb  6 14:07:08 UTC 2026
 🌐 OS Deployed to VNC.

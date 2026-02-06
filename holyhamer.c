@@ -18,6 +18,55 @@ int get_var_index(char c)
     return -1;
 }
 
+void run_hlmr_file(char *filename)
+{
+    char *file_content = fs_read_file(filename); // Your FS read function
+
+    if (file_content == (char *)0)
+    {
+        print_string("Error: Could not find file ");
+        print_string(filename);
+        print_string("\n");
+        return;
+    }
+
+    print_string("--- Executing ");
+    print_string(filename);
+    print_string(" ---\n");
+
+    // Split content by lines and run each through the engine
+    char line_buffer[256];
+    int i = 0, j = 0;
+
+    while (file_content[i] != '\0')
+    {
+        if (file_content[i] == '\n' || file_content[i] == '\r')
+        {
+            line_buffer[j] = '\0';
+            if (j > 0)
+            {
+                // We reuse your existing logic!
+                execute_hlmr_line(line_buffer);
+            }
+            j = 0;
+        }
+        else
+        {
+            line_buffer[j++] = file_content[i];
+        }
+        i++;
+    }
+
+    print_string("--- Execution Finished ---\n");
+}
+
+// Refactor your old run_holyhamer_code into this shared function
+void execute_hlmr_line(char *input)
+{
+    // Paste your var, add, sub, bg, text logic here
+    // Replace 'key_buffer' with 'input'
+}
+
 void run_holyhamer_code()
 {
     print_string("\n");

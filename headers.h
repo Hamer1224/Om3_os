@@ -26,6 +26,10 @@ int starts_with(char *main, char *prefix);
 void int_to_string(int n, char str[]);
 int string_to_int(char* str);
 
+void run_hlmr_file(char* filename);
+void execute_hlmr_line(char* input);
+int ends_with(char* str, char* suffix);
+
 // --- SCREEN (screen.c) ---
 void clear_screen();
 void print_string(char* str);

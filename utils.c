@@ -174,3 +174,22 @@ void filesystem_cd(char *path)
     print_string(current_path);
     print_string("\n");
 }
+
+int ends_with(char *str, char *suffix)
+{
+    int str_len = strlen(str);
+    int suffix_len = strlen(suffix);
+    if (suffix_len > str_len)
+        return 0;
+    return strcmp(str + str_len - suffix_len, suffix) == 0;
+}
+void strcpy(char *dest, char *src)
+{
+    int i = 0;
+    while (src[i] != '\0')
+    {
+        dest[i] = src[i];
+        i++;
+    }
+    dest[i] = '\0';
+}
