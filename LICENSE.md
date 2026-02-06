@@ -1,9 +1,4 @@
----
 
-## 2. The License File (`LICENSE`)
-The **MIT License** is the best choice for you. It’s short, lets people use your code, but says you aren't responsible if they break something.
-
-```text
 MIT License
 
 Copyright (c) 2026 Hamer1224
@@ -25,13 +20,3 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
-🚀 Final Deployment Step
-Since you are a DevOps pro now, push these files to GitHub to see your CI/CD pipeline turn green!
-
-git add README.md LICENSE
-
-git commit -m "docs: add readme and license for v1.2 release"
-
-git push origin main
-
-Would you like me to generate a "Release Tag" command for you so you can officially mark this as Version 1.2 on GitHub?
