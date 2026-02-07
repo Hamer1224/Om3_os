@@ -107,6 +107,20 @@ void execute_command()
                 print_string("usage: write <name> <content>\n");
             }
         }
+        else if (starts_with(key_buffer, "edit "))
+        {
+            char *filename = key_buffer + 5;
+
+            // Clean the filename (remove trailing spaces/newlines)
+            int len = strlen(filename);
+            while (len > 0 && (filename[len - 1] == ' ' || filename[len - 1] == '\n'))
+            {
+                filename[len - 1] = '\0';
+                len--;
+            }
+
+            start_text_editor(filename);
+        }
         else if (starts_with(key_buffer, "cd "))
         {
             filesystem_cd(key_buffer + 3);

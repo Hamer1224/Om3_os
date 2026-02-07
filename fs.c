@@ -43,6 +43,45 @@ void fs_format()
     print_string("omfs formatted. all data wiped.\n");
 }
 
+#include "headers.h"
+
+// Assuming you have a global sector_buffer[512]
+void fs_write(char *filename, char *content)
+{
+    int slot = -1;
+
+    // 1. Find an empty slot or overwrite an existing file with the same name
+    for (int i = 0; i < MAX_FILES; i++)
+    {
+        if (strcmp(file_table[i].name, filename) == 0)
+        {
+            slot = i;
+            break;
+        }
+        if (slot == -1)
+        {
+            slot = i;
+        }
+    }
+
+    if (slot == -1)
+    {
+        print_string("Error: Disk Full\n");
+        return;
+    }
+
+    // 2. Prepare the file entry
+    strcpy(file_table[slot].name, filename);
+    // For simplicity, we use the slot index as the sector ID (offset by some start sector)
+    file_table[slot].sector_id = 100 + slot;
+
+    // 3. Write the content to the disk
+    // We cast the content to unsigned char for the ATA driver
+    ata_write_sector(file_table[slot].sector_id, (unsigned char *)content);
+
+    // 4. Update the file table on disk so it persists after reboot
+    // save_file_table();
+}
 // 2. LIST: Show files
 void fs_list()
 {
@@ -136,7 +175,6 @@ void fs_read(char *name)
 
 // A simple structure for a file
 
-
 char *fs_read_file(char *filename)
 {
     load_table();
@@ -146,9 +184,8 @@ char *fs_read_file(char *filename)
         {
             print_string("found file");
             ata_read_sector(file_table[i].sector_id, sector_buffer);
-            return (char*)sector_buffer;
+            return (char *)sector_buffer;
         }
     }
     return (char *)0; // File not found
 }
-

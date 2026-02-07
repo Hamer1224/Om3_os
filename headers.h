@@ -12,6 +12,7 @@ extern int cursor_row;
 extern unsigned char current_color;
 extern unsigned char terminal_attribute;
 extern int holyhamer_mode;
+extern char key_buffer[256]; // Access your global keyboard buffer
 extern char current_path[256];
 extern int is_root;
 
@@ -37,6 +38,9 @@ void print_char(char c);
 void print_backspace();
 void update_cursor();
 void set_terminal_color(char* color_name);
+int strlen(char *s);
+void fs_write(char *filename, char *content);
+void fs_write(char *filename, char *content);
 
 // --- KEYBOARD (keyboard.c) ---
 char get_key_from_scancode(unsigned char scancode);
@@ -45,7 +49,7 @@ void set_keyboard_layout(char* layout);
 // --- DISK (disk.c) ---
 void ata_read_sector(int sector, void* buffer);
 void ata_write_sector(int sector, void* buffer);
-
+void start_text_editor(char* filename);
 // --- FILESYSTEM (fs.c) ---
 void fs_format();
 void fs_list();

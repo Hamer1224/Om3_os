@@ -1,5 +1,5 @@
 # List all object files
-OBJ = entry.o kernel.o utils.o screen.o keyboard.o disk.o fs.o holyhamer.o
+OBJ = entry.o kernel.o utils.o screen.o keyboard.o disk.o fs.o holyhamer.o editor.o
 CFLAGS = -m32 -ffreestanding -fno-stack-protector -fno-pic -fno-pie -c
 # Build the final OS image
 all: om3os.bin
