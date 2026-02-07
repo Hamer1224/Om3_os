@@ -34,9 +34,9 @@ ld -m elf_i386 -T link.ld -o kernel.bin entry.o kernel.o utils.o screen.o keyboa
 dd if=/dev/zero of=padding.bin bs=1M count=10
 10+0 records in
 10+0 records out
-10485760 bytes (10 MB, 10 MiB) copied, 0.00723601 s, 1.4 GB/s
+10485760 bytes (10 MB, 10 MiB) copied, 0.005341 s, 2.0 GB/s
 cat boot.bin kernel.bin padding.bin > om3os.bin
 rm padding.bin
 # Link the kernel
-✅ Build Successful at Fri Feb  6 19:18:23 UTC 2026
+✅ Build Successful at Sat Feb  7 08:30:52 UTC 2026
 🌐 OS Deployed to VNC.

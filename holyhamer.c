@@ -20,9 +20,10 @@ int get_var_index(char c)
 
 void run_hlmr_file(char *filename)
 {
-    char *file_content = fs_read_file(filename); // Your FS read function
+    // 1. Fetch the content from your virtual disk
+    char *content = fs_read_file(filename);
 
-    if (file_content == (char *)0)
+    if (content == (char *)0)
     {
         print_string("Error: Could not find file ");
         print_string(filename);
@@ -34,31 +35,45 @@ void run_hlmr_file(char *filename)
     print_string(filename);
     print_string(" ---\n");
 
-    // Split content by lines and run each through the engine
     char line_buffer[256];
-    int i = 0, j = 0;
+    int char_pos = 0;
+    int i = 0;
 
-    while (file_content[i] != '\0')
+    // 2. Iterate through every character in the file
+    while (content[i] != '\0')
     {
-        if (file_content[i] == '\n' || file_content[i] == '\r')
+        // Look for line separators: semicolon, newline, or carriage return
+        if (content[i] == ';' || content[i] == '\n' || content[i] == '\r')
         {
-            line_buffer[j] = '\0';
-            if (j > 0)
+            line_buffer[char_pos] = '\0'; // Null-terminate the string
+
+            // If the line isn't empty, send it to the HolyHamer engine
+            if (char_pos > 0)
             {
-                // We reuse your existing logic!
                 execute_hlmr_line(line_buffer);
             }
-            j = 0;
+            char_pos = 0; // Reset for the next line
         }
         else
         {
-            line_buffer[j++] = file_content[i];
+            // Add character to the current line buffer
+            line_buffer[char_pos] = content[i];
+            char_pos++;
         }
         i++;
     }
 
+    // 3. THE MAGIC FIX: Flush the remaining buffer
+    // This ensures that if the file ends without a ; or \n, the last command still runs!
+    if (char_pos > 0)
+    {
+        line_buffer[char_pos] = '\0';
+        execute_hlmr_line(line_buffer);
+    }
+
     print_string("--- Execution Finished ---\n");
 }
+
 
 // Refactor your old run_holyhamer_code into this shared function
 void execute_hlmr_line(char *input)
