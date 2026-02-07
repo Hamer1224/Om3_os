@@ -2,7 +2,7 @@
 #include "headers.h"
 
 #define FS_START_SECTOR 100
-#define MAX_FILES 16
+#define MAX_FILES 64
 #define FILE_NAME_LEN 16
 
 // The structure of one file entry (Total 32 bytes)
@@ -135,30 +135,18 @@ void fs_read(char *name)
 }
 
 // A simple structure for a file
-typedef struct
-{
-    char name[32];
-    char content[512];
-    int active;
-} VirtualFile;
 
-VirtualFile rom_disk[10]; // Can store 10 files
-
-void fs_init()
-{
-    // Let's pre-load your first HolyHamer script!
-    strcpy(rom_disk[0].name, "start.hlmr");
-    strcpy(rom_disk[0].content, "bg blue\ntext yellow\necho Booting Script...\nvar x = 5\nmul x 10\nprint x\n");
-    rom_disk[0].active = 1;
-}
 
 char *fs_read_file(char *filename)
 {
-    for (int i = 0; i < 10; i++)
+    load_table();
+    for (int i = 0; i < MAX_FILES; i++)
     {
-        if (rom_disk[i].active && strcmp(rom_disk[i].name, filename) == 0)
+        if (strcmp(file_table[i].name, filename) == 0)
         {
-            return rom_disk[i].content;
+            print_string("found file");
+            ata_read_sector(file_table[i].sector_id, sector_buffer);
+            return (char*)sector_buffer;
         }
     }
     return (char *)0; // File not found

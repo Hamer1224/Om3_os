@@ -132,8 +132,20 @@ void execute_command()
         }
         else if (ends_with(key_buffer, ".hlmr"))
         {
-            // Only run this if it's NOT a write command
-            run_hlmr_file(key_buffer);
+            char *input = key_buffer;
+            int len = strlen(input);
+
+            // CHOP: Remove ALL trailing spaces, newlines, and carriage returns
+            while (len > 0 && (input[len - 1] == ' ' || input[len - 1] == '\n' || input[len - 1] == '\r'))
+            {
+                input[len - 1] = '\0';
+                len--;
+            }
+
+            if (len > 0)
+            {
+                run_hlmr_file(input); // Now "s.hlmr" will match "s.hlmr"
+            }
         }
         else if (strcmp(key_buffer, "clear") == 0)
         {
@@ -178,7 +190,6 @@ void kmain()
 {
     // Initialize HolyHamer Memory
     hh_init();
-    fs_init();
     clear_screen();
     print_string("welcome to om3 os v2.1 (holyhamer enabled)\n");
     print_string("om3$ ");

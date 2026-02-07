@@ -18,69 +18,63 @@ int get_var_index(char c)
     return -1;
 }
 
+// Refactor your old run_holyhamer_code into this shared function
+// Paste your var, add, sub, bg, text logic here
+// Replace 'key_buffer' with 'input'
+
+void execute_hlmr_line(char *line)
+{
+    // 1. Clean the input (trim spaces)
+    while (*line == ' ')
+        line++;
+    int len = strlen(line);
+    while (len > 0 && (line[len - 1] == ' ' || line[len - 1] == '\n'))
+    {
+        line[len - 1] = '\0';
+        len--;
+    }
+
+    // 2. The Color Fix (Direct Hex Assignment)
+    if (starts_with(line, "bg "))
+    {
+        set_terminal_background(line + 3);
+    }
+}
+
 void run_hlmr_file(char *filename)
 {
-    // 1. Fetch the content from your virtual disk
     char *content = fs_read_file(filename);
-
-    if (content == (char *)0)
+    if (!content)
     {
-        print_string("Error: Could not find file ");
-        print_string(filename);
-        print_string("\n");
+        print_string("Error: File not found.\n");
         return;
     }
 
-    print_string("--- Executing ");
-    print_string(filename);
-    print_string(" ---\n");
-
-    char line_buffer[256];
-    int char_pos = 0;
-    int i = 0;
-
-    // 2. Iterate through every character in the file
-    while (content[i] != '\0')
+    char buffer[256];
+    int pos = 0;
+    for (int i = 0; content[i] != '\0'; i++)
     {
-        // Look for line separators: semicolon, newline, or carriage return
-        if (content[i] == ';' || content[i] == '\n' || content[i] == '\r')
+        if (content[i] == ';' || content[i] == '\n')
         {
-            line_buffer[char_pos] = '\0'; // Null-terminate the string
-
-            // If the line isn't empty, send it to the HolyHamer engine
-            if (char_pos > 0)
-            {
-                execute_hlmr_line(line_buffer);
-            }
-            char_pos = 0; // Reset for the next line
+            buffer[pos] = '\0';
+            if (pos > 0)
+                execute_hlmr_line(buffer);
+            pos = 0;
         }
         else
         {
-            // Add character to the current line buffer
-            line_buffer[char_pos] = content[i];
-            char_pos++;
+            buffer[pos++] = content[i];
         }
-        i++;
     }
 
-    // 3. THE MAGIC FIX: Flush the remaining buffer
-    // This ensures that if the file ends without a ; or \n, the last command still runs!
-    if (char_pos > 0)
+    // CRITICAL: Final Flush for files without a trailing semicolon
+    if (pos > 0)
     {
-        line_buffer[char_pos] = '\0';
-        execute_hlmr_line(line_buffer);
+        buffer[pos] = '\0';
+        execute_hlmr_line(buffer);
     }
-
-    print_string("--- Execution Finished ---\n");
 }
 
-
-// Refactor your old run_holyhamer_code into this shared function
-void execute_hlmr_line(char *input)
-{
-    // Paste your var, add, sub, bg, text logic here
-    // Replace 'key_buffer' with 'input'
-}
 
 void run_holyhamer_code()
 {

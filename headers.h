@@ -60,4 +60,7 @@ void set_terminal_background(char* color_name);
 
 void filesystem_cd(char* path);
 
+// Add this line so other files know this function exists
+char *fs_read_file(char *filename);
+
 #endif
